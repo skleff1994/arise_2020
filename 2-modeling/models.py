@@ -236,3 +236,56 @@ class KinematicModel2R:
             # Jacobian (inverse)
             qdot = np.linalg.solve(jac, pdot)
             return qdot
+
+class Model1R:
+    '''
+    Environment class for the 1R robot kinematics + geometry
+    '''
+    def __init__(self, L=1.):
+        ''' 
+        Initialize model parameters
+        '''
+        # Number of joints
+        self.nq = 1
+        
+        # Geometric Model
+        self.geometry = GeometricModel1R(L)
+        # Kinematic Model
+        self.kinematics = KinematicModel1R(L)
+        
+    def animate(self, q):
+        '''
+        Animate a given sequence of joint positions
+        '''
+        self.geometry.animate(q[0,:])
+
+# Calculate desired joint trajectory
+class KinematicPlanner:
+    
+    def __init__(self, model=None):
+        '''
+        Initialize parameters
+        '''
+        # Model (geometry + kinematics) 
+        self.model = model
+        # Number of joints
+        self.nq = self.model.nq
+
+    def plan(self, p, pdot):
+        '''
+        Calculates the desired joint trajectory achieving an input end-effector motion
+        Input : end-effector positions, velocities
+        Output : joint positions, velocities
+        '''
+        # Get number of steps
+        N = np.shape(p)[1]
+        # Initialize joint positions and velocities
+        q = np.zeros((self.nq, N))
+        qdot = np.zeros((self.nq, N))
+        # Get plan using IGM and IKM
+        for i in range(N):
+            # Use IGM to get joint position
+            q[:,i] = self.model.geometry.IGM(p[:,i])
+            # Use IKM to get joint velocity
+            qdot[:,i] = self.model.kinematics.IKM(q[:,i], pdot[:,i])
+        return q, qdot
